@@ -1,0 +1,2 @@
+import{useEffect,type ReactNode}from'react';import{useAuthStore}from'../store/authStore'
+export function AuthInitializer({children}:{children:ReactNode}){const checkAuth=useAuthStore(s=>s.checkAuth),checked=useAuthStore(s=>s.isAuthChecked);useEffect(()=>{void checkAuth()},[checkAuth]);if(!checked)return <div className="page-loader"><span className="spinner"/> Проверяем сессию…</div>;return children}

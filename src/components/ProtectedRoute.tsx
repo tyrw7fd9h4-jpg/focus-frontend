@@ -1,0 +1,2 @@
+import{Navigate,Outlet}from'react-router-dom';import{useAuthStore}from'../store/authStore'
+export function ProtectedRoute({requireHH=false}:{requireHH?:boolean}){const{isAuthenticated,isHHConnected,isAuthChecked}=useAuthStore();if(!isAuthChecked)return null;if(!isAuthenticated)return <Navigate to="/login" replace/>;if(requireHH&&!isHHConnected)return <Navigate to="/connect-hh" replace/>;return <Outlet/>}
