@@ -1,0 +1,14 @@
+.stat-link {
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.stat-link:hover {
+  transform: translateY(-2px);
+  border-color: #cbd1c2;
+}
+
+.stat-link:focus-visible {
+  outline: 2px solid var(--accent-dark);
+  outline-offset: 2px;
+}

@@ -66,6 +66,8 @@ export type JobSearchPreferences = {
   accreditedCompanyPreference: 'ONLY_ACCREDITED' | 'EXCLUDE_ACCREDITED' | 'ANY'
   stopWords: string[]
   excludedCompanies: string[]
+  autoSearchEnabled: boolean
+  autoApplyEnabled: boolean
   updatedAt: string
 }
 
@@ -81,7 +83,7 @@ export const profileApi = {
     api.post<ProfileResponse>('/profile/sync-hh', undefined, { timeout: 45_000 }).then(({ data }) => data),
   getPreferences: () =>
     api.get<JobSearchPreferences>('/profile/preferences').then(({ data }) => data),
-  updatePreferences: (preferences: PreferencesPayload) =>
+  updatePreferences: (preferences: Partial<PreferencesPayload>) =>
     api.put<JobSearchPreferences>('/profile/preferences', preferences).then(({ data }) => data),
 }
 

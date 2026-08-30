@@ -1,1 +1,7 @@
-import type{ReactNode}from'react';import{useNavigate}from'react-router-dom';import{hhApi}from'../api/hh';import{AccountMenu}from'../components/AccountMenu/AccountMenu';import{Sidebar}from'../components/Sidebar/Sidebar';import{useAuthStore}from'../store/authStore';import'./AppLayout.css';export function AppLayout({children}:{children:ReactNode}){const{user,disconnectHH,logout}=useAuthStore();const navigate=useNavigate();const leaveHH=async()=>{try{await hhApi.disconnect()}finally{disconnectHH();navigate('/connect-hh')}};const leaveFocus=()=>{logout();navigate('/login',{replace:true})};return <div><Sidebar/><main className="app-main"><div className="app-account-bar"><AccountMenu email={user?.email} onLeaveHH={()=>void leaveHH()} onLogout={leaveFocus}/></div>{children}</main></div>}
+import type { ReactNode } from 'react'
+import { Sidebar } from '../components/Sidebar/Sidebar'
+import './AppLayout.css'
+
+export function AppLayout({ children }: { children: ReactNode }) {
+  return <div><Sidebar /><main className="app-main">{children}</main></div>
+}

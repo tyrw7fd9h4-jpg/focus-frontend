@@ -1,0 +1,33 @@
+.vacancy-card footer {
+  gap: 10px;
+}
+
+.vacancy-card footer a {
+  margin-right: auto;
+}
+
+.vacancy-card footer button {
+  margin-left: 0;
+}
+
+.vacancy-card footer .vacancy-respond {
+  padding: 9px 14px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.vacancy-card footer .vacancy-respond:hover {
+  background: var(--accent-dark);
+}
+
+.vacancy-card footer .vacancy-respond:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.vacancy-card footer .vacancy-hide {
+  background: none;
+  color: #969b91;
+}

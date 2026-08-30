@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { getHHError, hhApi, isUnauthorized } from '../../api/hh'
+import { getHHError, hhApi, isUnauthorized, type HhOtpType } from '../../api/hh'
+import { profileApi } from '../../api/profile'
 import { Brand } from '../../components/Brand'
 import { AccountMenu } from '../../components/AccountMenu/AccountMenu'
 import { Button } from '../../components/ui/Button'
@@ -15,11 +16,13 @@ type Step = 'phone' | 'code' | 'captcha' | 'connected'
 export function ConnectHHPage() {
   const [step, setStep] = useState<Step>('phone')
   const [username, setUsername] = useState('')
+  const [otpType, setOtpType] = useState<HhOtpType>('phone')
   const [code, setCode] = useState('')
   const [captchaText, setCaptchaText] = useState('')
   const [codeLength, setCodeLength] = useState(4)
   const [notice, setNotice] = useState('')
   const { connectHH, disconnectHH, logout, user } = useAuthStore()
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
 
   const handleUnauthorized = useCallback((error: unknown) => {
@@ -63,7 +66,7 @@ export function ConnectHHPage() {
   }, [captcha.error, handleUnauthorized])
 
   const request = useMutation({
-    mutationFn: () => hhApi.requestOtp(username),
+    mutationFn: () => hhApi.requestOtp(username, otpType),
     onSuccess: (result) => {
       if (result.status === 'captcha_required') {
         setCaptchaText('')
@@ -103,8 +106,19 @@ export function ConnectHHPage() {
       if (!result.success || !result.connected) throw new Error('Неверный или просроченный SMS-код')
       return result
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       connectHH()
+      queryClient.removeQueries({ queryKey: ['profile'] })
+      try {
+        const resumes = await profileApi.getResumes()
+        const primaryResume = resumes[0]
+        if (primaryResume) {
+          const profile = await profileApi.selectResume(primaryResume.id)
+          queryClient.setQueryData(['profile'], profile)
+        }
+      } catch {
+        // The connection succeeded even if HH temporarily did not return a resume.
+      }
       setNotice('')
       setStep('connected')
     },
@@ -128,6 +142,7 @@ export function ConnectHHPage() {
       submitCaptcha.reset()
       setStep('phone')
       setUsername('')
+      setOtpType('phone')
       setCode('')
       setCaptchaText('')
       setNotice('')
@@ -159,22 +174,23 @@ export function ConnectHHPage() {
       <h1>{title}</h1>
 
       {step === 'phone' && <p className="connect-sub">Мы используем ваш аккаунт HH для поиска вакансий и отправки откликов.</p>}
-      {step === 'code' && <p className="connect-sub">Мы отправили SMS-код подтверждения на <b>{username}</b></p>}
+      {step === 'code' && <p className="connect-sub">Мы отправили код подтверждения на <b>{username}</b></p>}
       {step === 'captcha' && <p className="connect-sub"><b>HH.ru запросил проверку CAPTCHA.</b> Введите символы с изображения вручную.</p>}
       {step === 'connected' && <p className="connect-sub">Всё готово. Теперь Focus может искать вакансии и отправлять отклики от вашего имени.</p>}
 
       {statusError && step === 'phone' && <div className="hh-message hh-message-error" role="alert">{statusError}</div>}
       {step === 'phone' && <form onSubmit={submit}>
-        <Input label="Номер телефона" placeholder="+7 911 000-00-00" type="tel" autoComplete="tel" value={username} onChange={(event) => setUsername(event.target.value)} required />
+        <div className="segmented" role="group" aria-label="Способ входа"><button type="button" className={otpType === 'phone' ? 'active' : ''} onClick={() => { setOtpType('phone'); setUsername(''); request.reset() }}>Телефон</button><button type="button" className={otpType === 'email' ? 'active' : ''} onClick={() => { setOtpType('email'); setUsername(''); request.reset() }}>Почта</button></div>
+        <Input label={otpType === 'phone' ? 'Номер телефона' : 'Email'} placeholder={otpType === 'phone' ? '+7 911 000-00-00' : 'name@example.com'} type={otpType === 'phone' ? 'tel' : 'email'} autoComplete={otpType === 'phone' ? 'tel' : 'email'} value={username} onChange={(event) => setUsername(event.target.value)} required />
         {requestError && <div className="hh-message hh-message-error" role="alert">{requestError}</div>}
         <Button loading={request.isPending} disabled={request.isPending}>Получить код <span>→</span></Button>
       </form>}
 
       {step === 'code' && <form onSubmit={submit}>
         {notice && <div className="hh-message hh-message-success" role="status">✓ {notice}</div>}
-        <Input label="SMS-код" inputMode="numeric" autoComplete="one-time-code" placeholder={'•'.repeat(codeLength)} maxLength={codeLength} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} required />
+        <Input label="Код подтверждения" inputMode="numeric" autoComplete="one-time-code" placeholder={'•'.repeat(codeLength)} maxLength={codeLength} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))} required />
         {verifyError && <div className="hh-message hh-message-error" role="alert">{verifyError}</div>}
-        <button className="change-link" type="button" onClick={() => void resetForm()}>← Изменить телефон</button>
+        <button className="change-link" type="button" onClick={() => void resetForm()}>← Изменить способ входа</button>
         <Button loading={verify.isPending} disabled={verify.isPending || code.length !== codeLength}>Подтвердить <span>→</span></Button>
       </form>}
 
@@ -189,7 +205,7 @@ export function ConnectHHPage() {
         <Input label="Символы с изображения" autoComplete="off" value={captchaText} onChange={(event) => setCaptchaText(event.target.value)} required />
         <div className="captcha-actions">
           <button className="change-link" type="button" onClick={() => void captcha.refetch()}>Обновить изображение</button>
-          <button className="change-link" type="button" onClick={() => void resetForm()}>Изменить телефон</button>
+          <button className="change-link" type="button" onClick={() => void resetForm()}>Изменить способ входа</button>
         </div>
         <Button loading={submitCaptcha.isPending} disabled={submitCaptcha.isPending || !captcha.data?.image || !captchaText.trim()}>Продолжить <span>→</span></Button>
       </form>}

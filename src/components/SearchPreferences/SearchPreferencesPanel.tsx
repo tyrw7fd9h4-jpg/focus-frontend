@@ -47,6 +47,8 @@ export function SearchPreferencesPanel({ initial, resumePosition, onSaved, onCan
     accreditedCompanyPreference: initial.accreditedCompanyPreference,
     stopWords: initial.stopWords,
     excludedCompanies: initial.excludedCompanies,
+    autoSearchEnabled: initial.autoSearchEnabled,
+    autoApplyEnabled: initial.autoApplyEnabled,
   })
   const update = <K extends keyof PreferencesPayload>(key: K, value: PreferencesPayload[K]) =>
     setForm((current) => ({ ...current, [key]: value }))

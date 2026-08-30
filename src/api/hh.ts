@@ -7,13 +7,14 @@ export type OTPRequestResponse =
   | { status: 'captcha_required' }
 export type OTPVerifyResponse = { success: boolean; connected: boolean }
 export type CaptchaResponse = { image: string }
+export type HhOtpType = 'phone' | 'email'
 
 export const hhApi = {
   getStatus: () => api.get<HHStatusResponse>('/hh/auth/status').then(({ data }) => data),
   disconnect: () =>
     api.post<{ success: boolean; connected: false }>('/hh/auth/disconnect').then(({ data }) => data),
-  requestOtp: (username: string) =>
-    api.post<OTPRequestResponse>('/hh/auth/otp/request', { username, otpType: 'phone' }, { timeout: 60_000 }).then(({ data }) => data),
+  requestOtp: (username: string, otpType: HhOtpType) =>
+    api.post<OTPRequestResponse>('/hh/auth/otp/request', { username, otpType }, { timeout: 60_000 }).then(({ data }) => data),
   getCaptcha: () =>
     api.get<CaptchaResponse>('/hh/auth/captcha', { timeout: 60_000 }).then(({ data }) => data),
   submitCaptcha: (captchaText: string) =>
